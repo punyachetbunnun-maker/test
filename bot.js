@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 
-const SERVER_URL = "wss://your-game-server-url-here"; 
-const AUTH_PACKET = ["A", "your_auth_token_or_login_data_here"]; 
+const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
+const AUTH_PACKET = ["C", "7enx8an7xm"];
 const TARGET_NAME = "Cinnamon Bun";
 
 let allUsers = [];
