@@ -1,0 +1,10 @@
+{
+  "name": "arras-stats-bot",
+  "version": "1.0.0",
+  "description": "24/7 Stats Auto-Updater",
+  "main": "server.js",
+  "type": "module",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
