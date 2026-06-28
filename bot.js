@@ -1,20 +1,10 @@
 import WebSocket from 'ws';
+import { HfInference } from '@huggingface/inference';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
-const PHRASES = [
-    "hi",
-    "hello",
-    "hey",
-    "yo",
-    "sup",
-    "howdy",
-    "welcome",
-    "greetings",
-    "hi there",
-    "hello there"
-];
+const hf = new HfInference(process.env.HF_API_TOKEN);
 
 let ws = null;
 
@@ -31,27 +21,53 @@ function connectToGame() {
         ws.send(JSON.stringify(AUTH_PACKET));
     });
 
-    ws.on('message', (data) => {
+    ws.on('message', async (data) => {
         try {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                let messageText = "";
+                let rawChatString = "";
                 
-                for (let i = 1; i < packet.length; i++) {
-                    if (typeof packet[i] === "string") {
-                        const checkStr = packet[i].toLowerCase();
-                        if (checkStr === "hi") {
-                            messageText = checkStr;
-                            break;
-                        }
-                    }
+                if (typeof packet[2] === "string") {
+                    rawChatString = packet[2];
+                } else if (typeof packet[1] === "string") {
+                    rawChatString = packet[1];
                 }
                 
-                if (messageText === "hi") {
-                    const randomIndex = Math.floor(Math.random() * PHRASES.length);
-                    const randomMessage = PHRASES[randomIndex];
-                    ws.send(JSON.stringify(["M", randomMessage]));
+                if (rawChatString.trim().length > 0) {
+                    let actualMessage = rawChatString;
+                    
+                    const colonIndex = rawChatString.indexOf(": ");
+                    if (colonIndex !== -1) {
+                        actualMessage = rawChatString.substring(colonIndex + 2);
+                    }
+
+                    const cleanMessage = actualMessage.trim().toLowerCase();
+
+                    if (cleanMessage === "hi" || cleanMessage.split(" ").includes("hi")) {
+                        try {
+                            const response = await hf.textGeneration({
+                                model: 'Mistralai/Mistral-7B-Instruct-v0.2',
+                                inputs: `<s>[INST] You are a casual player in a video game chat room. Reply to this comment: "${actualMessage}". Keep your answer short, casual, and exactly 1 sentence long. Do not use quotes or markdown. [/INST]`,
+                                parameters: {
+                                    max_new_tokens: 50,
+                                    temperature: 0.7
+                                }
+                            });
+
+                            let aiReply = response.generated_text;
+                            const instIndex = aiReply.lastIndexOf('[/INST]');
+                            if (instIndex !== -1) {
+                                aiReply = aiReply.substring(instIndex + 7).trim();
+                            }
+
+                            if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
+                                ws.send(JSON.stringify(["M", aiReply]));
+                            }
+                        } catch (aiError) {
+                            console.error("AI Generation Error:", aiError.message);
+                        }
+                    }
                 }
             }
         } catch (err) {}
