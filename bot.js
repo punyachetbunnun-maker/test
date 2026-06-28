@@ -47,10 +47,8 @@ function connectToGame() {
             if (Array.isArray(packet) && packet[0] === "M") {
                 let rawChatString = "";
                 
-                if (typeof packet[2] === "string") {
-                    rawChatString = packet[2];
-                } else if (typeof packet[1] === "string") {
-                    rawChatString = packet[1];
+                if (typeof packet[6] === "string") {
+                    rawChatString = packet[6];
                 }
                 
                 if (rawChatString.trim().length > 0) {
