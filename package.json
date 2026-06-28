@@ -1,10 +1,10 @@
 {
-  "name": "arras-stats-bot",
+  "name": "arras-bot",
   "version": "1.0.0",
-  "description": "24/7 Stats Auto-Updater",
-  "main": "server.js",
+  "main": "bot.js",
   "type": "module",
   "dependencies": {
-    "ws": "^8.18.0"
+    "ws": "^8.18.0",
+    "@google/genai": "^0.1.1"
   }
 }
