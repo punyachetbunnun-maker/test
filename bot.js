@@ -5,12 +5,12 @@ const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
 const ALL_KEYS = [
-    process.env.GEMINI_API_KEY_1,
-    process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3
+    { name: "GEMINI_API_KEY_1", value: process.env.GEMINI_API_KEY_1 },
+    { name: "GEMINI_API_KEY_2", value: process.env.GEMINI_API_KEY_2 },
+    { name: "GEMINI_API_KEY_3", value: process.env.GEMINI_API_KEY_3 }
 ];
 
-const API_KEYS = ALL_KEYS.filter(key => key && key.trim().length > 0);
+const API_KEYS = ALL_KEYS.filter(item => item.value && item.value.trim().length > 0);
 
 let currentKeyIndex = 0;
 let ws = null;
@@ -22,8 +22,8 @@ function getAIInstance() {
         console.error("Error: No valid API keys found in environment variables!");
         return null;
     }
-    const key = API_KEYS[currentKeyIndex];
-    return new GoogleGenAI({ apiKey: key });
+    const keyData = API_KEYS[currentKeyIndex];
+    return new GoogleGenAI({ apiKey: keyData.value });
 }
 
 function rotateKey() {
@@ -76,6 +76,7 @@ function connectToGame() {
                     let attempts = 0;
 
                     while (attempts < API_KEYS.length) {
+                        const currentKeyName = API_KEYS[currentKeyIndex].name;
                         try {
                             const ai = getAIInstance();
                             if (!ai) break;
@@ -90,14 +91,15 @@ function connectToGame() {
                             break; 
 
                         } catch (aiError) {
-                            console.error(`Key index ${currentKeyIndex} failed:`, aiError.message);
+                            console.error(`[${currentKeyName}] failed:`, aiError.message);
                             
                             const isRateLimited = aiError.message.includes("429") || aiError.message.includes("RESOURCE_EXHAUSTED");
                             const isUnavailable = aiError.message.includes("503") || aiError.message.includes("UNAVAILABLE");
 
                             if (isRateLimited || isUnavailable) {
-                                console.log("Key is full or unavailable. Switching to next key immediately...");
-                                rotateKey(); 
+                                rotateKey();
+                                const nextKeyName = API_KEYS[currentKeyIndex].name;
+                                console.log(`[${currentKeyName}] is full/unavailable. Automatically switching to [${nextKeyName}]...`);
                                 attempts++;
                             } else {
                                 rotateKey(); 
