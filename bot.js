@@ -1,23 +1,12 @@
 import WebSocket from 'ws';
+import { GoogleGenAI } from '@google/genai';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
-const AUTH_PACKET = ["C", "GU111B13_EZ"]; 
+const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
-const PHRASES = [
-    "hi",
-    "hello",
-    "hey",
-    "yo",
-    "sup",
-    "howdy",
-    "welcome",
-    "greetings",
-    "hi there",
-    "hello there"
-];
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
 let ws = null;
-let chatInterval = null;
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -30,18 +19,9 @@ function connectToGame() {
     ws.on('open', () => {
         console.log("Connected! Authenticating account...");
         ws.send(JSON.stringify(AUTH_PACKET));
-
-        if (chatInterval) clearInterval(chatInterval);
-        chatInterval = setInterval(() => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                const randomIndex = Math.floor(Math.random() * PHRASES.length);
-                const randomMessage = PHRASES[randomIndex];
-                ws.send(JSON.stringify(["M", randomMessage]));
-            }
-        }, 20000);
     });
 
-    ws.on('message', (data) => {
+    ws.on('message', async (data) => {
         try {
             const packet = JSON.parse(data.toString());
             
@@ -59,9 +39,16 @@ function connectToGame() {
                 }
                 
                 if (messageText === "h") {
-                    const randomIndex = Math.floor(Math.random() * PHRASES.length);
-                    const randomMessage = PHRASES[randomIndex];
-                    ws.send(JSON.stringify(["M", randomMessage]));
+                    const response = await ai.models.generateContent({
+                        model: 'gemini-2.5-flash',
+                        contents: 'Give a very short, friendly, single-sentence greeting to a player in a game chat. Do not include any quotes or extra formatting.',
+                    });
+                    
+                    const aiReply = response.text.trim();
+                    
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(["M", aiReply]));
+                    }
                 }
             }
         } catch (err) {}
@@ -69,10 +56,6 @@ function connectToGame() {
 
     ws.on('close', () => {
         console.log("Disconnected from server. Reconnecting in 5 seconds...");
-        if (chatInterval) {
-            clearInterval(chatInterval);
-            chatInterval = null;
-        }
         setTimeout(connectToGame, 5000);
     });
 
