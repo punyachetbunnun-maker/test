@@ -7,8 +7,7 @@ const AUTH_PACKET = ["C", "7enx8an7xm"];
 const ALL_KEYS = [
     process.env.GEMINI_API_KEY_1,
     process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3,
-    process.env.GEMINI_API_KEY_4
+    process.env.GEMINI_API_KEY_3
 ];
 
 const API_KEYS = ALL_KEYS.filter(key => key && key.trim().length > 0);
@@ -24,11 +23,10 @@ function getAIInstance() {
         return null;
     }
     const key = API_KEYS[currentKeyIndex];
-    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
     return new GoogleGenAI({ apiKey: key });
 }
 
-function rotateKeyOnError() {
+function rotateKey() {
     currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
 }
 
@@ -74,25 +72,42 @@ function connectToGame() {
 
                     lastReplyTime = now; 
 
-                    try {
-                        const ai = getAIInstance();
-                        if (!ai) return;
+                    let responseText = null;
+                    let attempts = 0;
 
-                        const response = await ai.models.generateContent({
-                            model: 'gemini-2.5-flash',
-                            contents: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply in a very short, snappy, conversational way (under 10 words). Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`,
-                        });
-                        
-                        const aiReply = response.text.trim();
-                        
-                        if (ws && ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify(["M", aiReply]));
+                    while (attempts < API_KEYS.length) {
+                        try {
+                            const ai = getAIInstance();
+                            if (!ai) break;
+
+                            const response = await ai.models.generateContent({
+                                model: 'gemini-2.5-flash',
+                                contents: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply in a very short, snappy, conversational way (under 10 words). Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`,
+                            });
+
+                            responseText = response.text.trim();
+                            rotateKey(); 
+                            break; 
+
+                        } catch (aiError) {
+                            console.error(`Key index ${currentKeyIndex} failed:`, aiError.message);
+                            
+                            const isRateLimited = aiError.message.includes("429") || aiError.message.includes("RESOURCE_EXHAUSTED");
+                            const isUnavailable = aiError.message.includes("503") || aiError.message.includes("UNAVAILABLE");
+
+                            if (isRateLimited || isUnavailable) {
+                                console.log("Key is full or unavailable. Switching to next key immediately...");
+                                rotateKey(); 
+                                attempts++;
+                            } else {
+                                rotateKey(); 
+                                break;
+                            }
                         }
-                    } catch (aiError) {
-                        console.error("Gemini API Error details:", aiError.message);
-                        if (aiError.message.includes("503") || aiError.message.includes("UNAVAILABLE")) {
-                            rotateKeyOnError();
-                        }
+                    }
+
+                    if (responseText && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(["M", responseText]));
                     }
                 }
             }
