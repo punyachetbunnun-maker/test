@@ -30,11 +30,10 @@ function connectToGame() {
             if (Array.isArray(packet) && packet[0] === "M") {
                 let incomingMessage = "";
                 
-                for (let i = 1; i < packet.length; i++) {
-                    if (typeof packet[i] === "string") {
-                        incomingMessage = packet[i];
-                        break;
-                    }
+                if (typeof packet[2] === "string") {
+                    incomingMessage = packet[2];
+                } else if (typeof packet[1] === "string") {
+                    incomingMessage = packet[1];
                 }
                 
                 if (incomingMessage.trim().length > 0) {
