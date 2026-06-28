@@ -38,7 +38,7 @@ function connectToGame() {
                 if (incomingMessage.trim().length > 0) {
                     const response = await ai.models.generateContent({
                         model: 'gemini-2.5-flash',
-                        contents: `You are a player in a game chat room. Reply to this message: "${incomingMessage}". Give a longer, detailed response (2-3 sentences long) that sounds natural and conversational. Do not include any quotes or markdown formatting.`,
+                        contents: `You are a player in a game chat room. Reply naturally to this message: "${incomingMessage}". Keep your response very short, single-sentence, and conversational. Do not use quotes or markdown formatting.`,
                     });
                     
                     const aiReply = response.text.trim();
