@@ -47,7 +47,7 @@ function connectToGame() {
 
                     try {
                         const response = await ai.models.generateContent({
-                            model: 'gemini-1.5-flash',
+                            model: 'gemini-2.5-flash',
                             contents: `You are a casual player in a game chat room. Reply to this message: "${incomingMessage}". Give a longer, detailed response (2-3 sentences long) that sounds natural and conversational. Do not include any quotes, markdown formatting, or bot-like phrasing.`,
                         });
                         
