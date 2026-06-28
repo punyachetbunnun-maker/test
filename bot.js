@@ -27,6 +27,10 @@ function getAIInstance() {
     return new GoogleGenAI({ apiKey: key });
 }
 
+function rotateKeyOnError() {
+    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
+}
+
 function connectToGame() {
     console.log("Connecting to game server...");
     ws = new WebSocket(SERVER_URL, {
@@ -85,6 +89,9 @@ function connectToGame() {
                         }
                     } catch (aiError) {
                         console.error("Gemini API Error details:", aiError.message);
+                        if (aiError.message.includes("503") || aiError.message.includes("UNAVAILABLE")) {
+                            rotateKeyOnError();
+                        }
                     }
                 }
             }
