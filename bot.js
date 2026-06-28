@@ -24,6 +24,7 @@ function connectToGame() {
     ws.on('message', async (data) => {
         try {
             const packet = JSON.parse(data.toString());
+            console.log("Incoming server packet:", packet);
             
             if (Array.isArray(packet) && packet[0] === "M") {
                 let rawChatString = "";
