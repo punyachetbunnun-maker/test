@@ -4,6 +4,7 @@ const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
 let ws = null;
+let lastBotReply = "";
 
 async function generateAIResponse(userMessage) {
     try {
@@ -84,9 +85,10 @@ function connectToGame() {
                         actualMessage = rawChatString.substring(colonIndex + 1).trim();
                     }
 
-                    if (actualMessage.length > 0) {
+                    if (actualMessage.length > 0 && actualMessage !== lastBotReply) {
                         const aiReply = await generateAIResponse(actualMessage);
                         if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
+                            lastBotReply = aiReply;
                             ws.send(JSON.stringify(["M", aiReply]));
                         }
                     }
