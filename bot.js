@@ -4,6 +4,7 @@ const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
 let ws = null;
+let chatInterval = null;
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -16,6 +17,13 @@ function connectToGame() {
     ws.on('open', () => {
         console.log("Connected! Authenticating account...");
         ws.send(JSON.stringify(AUTH_PACKET));
+
+        if (chatInterval) clearInterval(chatInterval);
+        chatInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(["M", "hi"]));
+            }
+        }, 10000);
     });
 
     ws.on('message', (data) => {
@@ -23,17 +31,30 @@ function connectToGame() {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                const username = packet[1];
                 const messageText = packet[2]?.toLowerCase() || "";
                 
                 if (messageText === "hi" || messageText === "hello") {
-                    const response = `hi ${username}`;
-                    ws.send(JSON.stringify(["M", response]));
+                    ws.send(JSON.stringify(["M", "hi"]));
                 }
             }
         } catch (err) {}
     });
 
+    ws.on('close', () => {
+        console.log("Disconnected from server. Reconnecting in 5 seconds...");
+        if (chatInterval) {
+            clearInterval(chatInterval);
+            chatInterval = null;
+        }
+        setTimeout(connectToGame, 5000);
+    });
+
+    ws.on('error', (err) => {
+        console.error("Socket error:", err.message);
+    });
+}
+
+connectToGame();
     ws.on('close', () => {
         console.log("Disconnected from server. Reconnecting in 5 seconds...");
         setTimeout(connectToGame, 5000);
