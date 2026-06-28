@@ -15,7 +15,7 @@ const API_KEYS = ALL_KEYS.filter(key => key && key.trim().length > 0);
 let currentKeyIndex = 0;
 let ws = null;
 let lastReplyTime = 0;
-const COOLDOWN_MS = 10000; 
+const COOLDOWN_MS = 15000; 
 
 function getAIInstance() {
     if (API_KEYS.length === 0) {
