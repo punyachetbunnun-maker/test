@@ -6,9 +6,13 @@ const AUTH_PACKET = ["C", "7enx8an7xm"];
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+const LEARNED_MEMORY = {
+    "ttf": "terroristic triangle forces"
+};
+
 let ws = null;
 let lastReplyTime = 0;
-const COOLDOWN_MS = 15000; 
+const COOLDOWN_MS = 10000; 
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -52,11 +56,19 @@ function connectToGame() {
 
                     lastReplyTime = now; 
 
+                    let customContext = "";
+                    const lowerMessage = actualMessage.toLowerCase();
+                    for (const [phrase, definition] of Object.entries(LEARNED_MEMORY)) {
+                        if (lowerMessage.includes(phrase)) {
+                            customContext += ` Note: In this room, "${phrase}" means "${definition}".`;
+                        }
+                    }
+
                     const response = await groq.chat.completions.create({
                         messages: [
                             {
                                 role: 'system',
-                                content: 'You are a player inside a game chat room. You must only output the final message reply text itself. Never include any introductory sentences, explanations, or meta-commentary. Keep your responses short, concise, and direct (maximum 1 sentence long). If it is a math problem, output only the absolute final answer. Keep your output strictly plain text without markdown, bold syntax, or quotes.'
+                                content: `You are a player inside a game chat room. You must only output the final message reply text itself. Never include any introductory sentences, explanations, or meta-commentary. Keep your responses short, concise, and direct (maximum 1 sentence long). If it is a math problem, output only the absolute final answer. Keep your output strictly plain text without markdown, bold syntax, or quotes.${customContext}`
                             },
                             {
                                 role: 'user',
