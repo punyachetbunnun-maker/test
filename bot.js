@@ -12,7 +12,7 @@ async function generateWithRetry(inputs, retries = 3) {
     for (let i = 0; i < retries; i++) {
         try {
             const response = await hf.textGeneration({
-                model: 'Mistralai/Mistral-7B-Instruct-v0.2',
+                model: 'Qwen/Qwen2.5-7B-Instruct',
                 inputs: inputs,
                 parameters: {
                     max_new_tokens: 50,
@@ -23,7 +23,7 @@ async function generateWithRetry(inputs, retries = 3) {
         } catch (err) {
             if (i === retries - 1) throw err;
             console.log(`AI fetch failed. Retrying... (${i + 1}/${retries})`);
-            await new Promise(res => setTimeout(res, 1000));
+            await new Promise(res => setTimeout(res, 1500));
         }
     }
 }
@@ -62,14 +62,16 @@ function connectToGame() {
 
                 if (foundHi) {
                     try {
-                        const prompt = `<s>[INST] You are a casual player in a video game chat room. Reply to this comment: "${actualMessage}". Keep your answer short, casual, and exactly 1 sentence long. Do not use quotes or markdown. [/INST]`;
+                        const prompt = `<|im_start|>system\nYou are a casual player in a video game chat room. Reply to the user message in exactly 1 short sentence. Do not use quotes or markdown.<|im_end|>\n<|im_start|>user\n${actualMessage}<|im_end|>\n<|im_start|>assistant\n`;
                         const response = await generateWithRetry(prompt);
 
                         let aiReply = response.generated_text;
-                        const instIndex = aiReply.lastIndexOf('[/INST]');
-                        if (instIndex !== -1) {
-                            aiReply = aiReply.substring(instIndex + 7).trim();
+                        const assistantIndex = aiReply.lastIndexOf('<|im_start|>assistant\n');
+                        if (assistantIndex !== -1) {
+                            aiReply = aiReply.substring(assistantIndex + 22).trim();
                         }
+                        
+                        aiReply = aiReply.replace(/<\|im_end\|>/g, '').trim();
 
                         if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
                             ws.send(JSON.stringify(["M", aiReply]));
