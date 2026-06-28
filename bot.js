@@ -9,7 +9,8 @@ const ALL_KEYS = [
     { name: "GEMINI_API_KEY_2", value: process.env.GEMINI_API_KEY_2 },
     { name: "GEMINI_API_KEY_3", value: process.env.GEMINI_API_KEY_3 },
     { name: "GEMINI_API_KEY_4", value: process.env.GEMINI_API_KEY_4 },
-    { name: "GEMINI_API_KEY_5", value: process.env.GEMINI_API_KEY_5 }
+    { name: "GEMINI_API_KEY_5", value: process.env.GEMINI_API_KEY_5 },
+    { name: "GEMINI_API_KEY_6", value: process.env.GEMINI_API_KEY_6 }
 ];
 
 const API_KEYS = ALL_KEYS.filter(item => item.value && item.value.trim().length > 0);
