@@ -4,7 +4,7 @@
   "main": "bot.js",
   "type": "module",
   "dependencies": {
-    "ws": "^8.18.0",
-    "@google/genai": "latest"
+    "@huggingface/inference": "^2.8.1",
+    "ws": "^8.16.0"
   }
 }
