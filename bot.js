@@ -26,8 +26,9 @@ function connectToGame() {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
+                console.log("Incoming packet structure:", packet);
+
                 let incomingMessage = "";
-                
                 for (let i = 1; i < packet.length; i++) {
                     if (typeof packet[i] === "string") {
                         incomingMessage = packet[i];
@@ -36,15 +37,20 @@ function connectToGame() {
                 }
                 
                 if (incomingMessage.trim().length > 0) {
-                    const response = await ai.models.generateContent({
-                        model: 'gemini-2.5-flash',
-                        contents: `You are a player in a game chat room. Reply naturally to this message: "${incomingMessage}". Keep your response very short, single-sentence, and conversational. Do not use quotes or markdown formatting.`,
-                    });
-                    
-                    const aiReply = response.text.trim();
-                    
-                    if (ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify(["M", aiReply]));
+                    try {
+                        const response = await ai.models.generateContent({
+                            model: 'gemini-2.5-flash',
+                            contents: `You are a player in a game chat room. Reply to this message: "${incomingMessage}". Give a longer, detailed response (2-3 sentences long) that sounds natural and conversational. Do not include any quotes or markdown formatting.`,
+                        });
+                        
+                        const aiReply = response.text.trim();
+                        console.log("Gemini generated reply successfully:", aiReply);
+                        
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify(["M", aiReply]));
+                        }
+                    } catch (aiError) {
+                        console.error("Gemini API Error details:", aiError.message);
                     }
                 }
             }
