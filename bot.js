@@ -1,30 +1,10 @@
-import WebSocket from 'ws';
-import { HfInference } from '@huggingface/inference';
-
-const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
-const AUTH_PACKET = ["C", "7enx8an7xm"]; 
-
-const hf = new HfInference(process.env.HF_API_TOKEN);
-
-let ws = null;
-
-function connectToGame() {
-    console.log("Connecting to game server...");
-    ws = new WebSocket(SERVER_URL, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-    });
-
-    ws.on('open', () => {
-        console.log("Connected! Authenticating account...");
-        ws.send(JSON.stringify(AUTH_PACKET));
-    });
-
-    ws.on('message', async (data) => {
+ws.on('message', async (data) => {
         try {
-            const packet = JSON.parse(data.toString());
-            console.log("Incoming server packet:", packet);
+            // Convert raw buffer data to a visible string
+            const rawString = data.toString();
+            console.log("RAW SERVER DATA:", rawString);
+
+            const packet = JSON.parse(rawString);
             
             if (Array.isArray(packet) && packet[0] === "M") {
                 let rawChatString = "";
@@ -71,17 +51,7 @@ function connectToGame() {
                     }
                 }
             }
-        } catch (err) {}
+        } catch (err) {
+            console.error("Failed to parse incoming packet:", err.message);
+        }
     });
-
-    ws.on('close', () => {
-        console.log("Disconnected from server. Reconnecting in 5 seconds...");
-        setTimeout(connectToGame, 5000);
-    });
-
-    ws.on('error', (err) => {
-        console.error("Socket error:", err.message);
-    });
-}
-
-connectToGame();
