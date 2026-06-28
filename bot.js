@@ -39,15 +39,25 @@ function connectToGame() {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                let incomingMessage = "";
+                let rawChatString = "";
                 
                 if (typeof packet[2] === "string") {
-                    incomingMessage = packet[2];
+                    rawChatString = packet[2];
                 } else if (typeof packet[1] === "string") {
-                    incomingMessage = packet[1];
+                    rawChatString = packet[1];
                 }
                 
-                if (incomingMessage.trim().length > 0) {
+                if (rawChatString.trim().length > 0) {
+                    let actualMessage = rawChatString;
+                    const colonIndex = rawChatString.indexOf(": ");
+                    if (colonIndex !== -1) {
+                        actualMessage = rawChatString.substring(colonIndex + 2);
+                    }
+
+                    if (actualMessage.trim().length === 0) {
+                        return;
+                    }
+
                     const now = Date.now();
                     if (now - lastReplyTime < COOLDOWN_MS) {
                         return; 
@@ -59,7 +69,7 @@ function connectToGame() {
                         const ai = getAIInstance();
                         const response = await ai.models.generateContent({
                             model: 'gemini-2.5-flash',
-                            contents: `You are a casual player in a game chat room. Reply to this message: "${incomingMessage}". Give a longer, detailed response (2-3 sentences long) that sounds natural and conversational. Do not include any quotes, markdown formatting, or bot-like phrasing.`,
+                            contents: `You are a casual player in a game chat room. Reply to this message: "${actualMessage}". Give a longer, detailed response (2-3 sentences long) that sounds natural and conversational. Do not include any quotes, markdown formatting, or bot-like phrasing.`,
                         });
                         
                         const aiReply = response.text.trim();
