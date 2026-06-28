@@ -26,22 +26,19 @@ function connectToGame() {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                let messageText = "";
+                let incomingMessage = "";
                 
                 for (let i = 1; i < packet.length; i++) {
                     if (typeof packet[i] === "string") {
-                        const checkStr = packet[i].toLowerCase();
-                        if (checkStr === "h") {
-                            messageText = checkStr;
-                            break;
-                        }
+                        incomingMessage = packet[i];
+                        break;
                     }
                 }
                 
-                if (messageText === "h") {
+                if (incomingMessage.trim().length > 0) {
                     const response = await ai.models.generateContent({
                         model: 'gemini-2.5-flash',
-                        contents: 'Give a very short, friendly, single-sentence greeting to a player in a game chat. Do not include any quotes or extra formatting.',
+                        contents: `You are a player in a game chat room. Reply naturally to this message: "${incomingMessage}". Keep your response very short, single-sentence, and conversational. Do not use quotes or markdown formatting.`,
                     });
                     
                     const aiReply = response.text.trim();
