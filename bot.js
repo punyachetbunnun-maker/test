@@ -1,9 +1,10 @@
 import WebSocket from 'ws';
 import Groq from 'groq-sdk';
+import { convert } from 'html-to-text';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
-const LORE_DOC_URL = "https://docs.google.com/document/d/1fJgD3m8acXw8c_oAHkzGoD6cie1bet2016ehQijOkmo/pub?output=txt";
+const LORE_DOC_URL = "https://docs.google.com/document/d/1fJgD3m8acXw8c_oAHkzGoD6cie1bet2016ehQijOkmo/mobilebasic";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -14,11 +15,20 @@ let communityLore = "";
 
 async function fetchCommunityLore() {
     try {
-        console.log("Loading community lore and reference materials...");
+        console.log("Loading community lore from public mobile view...");
         const response = await fetch(LORE_DOC_URL);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        communityLore = await response.text();
-        console.log("Successfully loaded lore database!");
+        const html = await response.text();
+        
+        communityLore = convert(html, {
+            wordwrap: false,
+            selectors: [
+                { selector: 'a', options: { ignoreHref: true } },
+                { selector: 'img', format: 'skip' }
+            ]
+        });
+
+        console.log("Successfully loaded and cleaned lore database!");
     } catch (err) {
         console.error("Failed to load lore document:", err.message);
         communityLore = "";
