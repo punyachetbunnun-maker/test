@@ -1,46 +1,14 @@
 import WebSocket from 'ws';
-import fs from 'fs';
-import express from 'express';
-
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-    res.send('Bot is running 24/7!');
-});
-
-app.listen(PORT, () => {
-    console.log(`Web server listening on port ${PORT}`);
-});
+import Groq from 'groq-sdk';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
-const DATA_FILE = './gold_data.json';
 
-let userStats = {};
-
-if (fs.existsSync(DATA_FILE)) {
-    try {
-        const rawData = fs.readFileSync(DATA_FILE, 'utf8');
-        userStats = JSON.parse(rawData);
-        console.log("Successfully loaded saved gold balances from file!");
-    } catch (err) {
-        console.error("Error reading save file, starting fresh:", err.message);
-        userStats = {};
-    }
-} else {
-    console.log("No save file found. Initializing fresh database.");
-}
-
-function saveDatabase() {
-    try {
-        fs.writeFileSync(DATA_FILE, JSON.stringify(userStats, null, 2), 'utf8');
-    } catch (err) {
-        console.error("Error saving data to file:", err.message);
-    }
-}
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 let ws = null;
+let lastReplyTime = 0;
+const COOLDOWN_MS = 10000; 
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -55,73 +23,49 @@ function connectToGame() {
         ws.send(JSON.stringify(AUTH_PACKET));
     });
 
-    ws.on('message', (data) => {
+    ws.on('message', async (data) => {
         try {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                let username = "";
-                let actualMessage = "";
-
-                if (typeof packet[1] === "string") {
-                    username = packet[1].trim();
-                }
+                let rawChatString = "";
                 
                 if (typeof packet[6] === "string") {
-                    actualMessage = packet[6].trim();
+                    rawChatString = packet[6];
                 }
-
-                if (username.length > 0 && actualMessage.length > 0) {
-                    const cleanMessage = actualMessage.replace(/\*/g, '').toLowerCase();
-
-                    if (!userStats[username]) {
-                        userStats[username] = {
-                            gold: 1,
-                            level: 0,
-                            multiplier: 1.0
-                        };
-                        saveDatabase();
+                
+                if (rawChatString.trim().length > 0) {
+                    let actualMessage = rawChatString;
+                    const colonIndex = rawChatString.indexOf(": ");
+                    if (colonIndex !== -1) {
+                        actualMessage = rawChatString.substring(colonIndex + 2);
                     }
 
-                    if (cleanMessage === "increase") {
-                        const baseGain = Math.random() < 0.5 ? 1 : 2;
-                        const finalGain = Math.round(baseGain * userStats[username].multiplier * 10) / 10;
-                        
-                        userStats[username].gold = Math.round((userStats[username].gold + finalGain) * 10) / 10;
-                        
-                        saveDatabase();
-
-                        const replyMessage = `${username} gained +${finalGain} gold. now, ${userStats[username].gold} gold. multiplyer, ${userStats[username].multiplier}x).`;
-
-                        if (ws && ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify(["M", replyMessage]));
-                        }
+                    if (actualMessage.trim().length === 0) {
+                        return;
                     }
 
-                    else if (cleanMessage === "buy") {
-                        const currentLevel = userStats[username].level;
-                        const cost = 10 * (currentLevel + 1);
+                    const now = Date.now();
+                    if (now - lastReplyTime < COOLDOWN_MS) {
+                        return; 
+                    }
 
-                        if (userStats[username].gold >= cost) {
-                            userStats[username].gold = Math.round((userStats[username].gold - cost) * 10) / 10;
-                            userStats[username].level += 1;
-                            userStats[username].multiplier = Math.round((userStats[username].multiplier + 0.1) * 10) / 10;
-                            
-                            saveDatabase();
+                    lastReplyTime = now; 
 
-                            const nextCost = 10 * (userStats[username].level + 1);
-                            const replyMessage = `${username} upgraded to lvl ${userStats[username].level}. multiplier, ${userStats[username].multiplier}x. next level costs ${nextCost} gold.`;
-
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                ws.send(JSON.stringify(["M", replyMessage]));
+                    const response = await groq.chat.completions.create({
+                        messages: [
+                            {
+                                role: 'user',
+                                content: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply with a longer, detailed response (2-3 sentences long) that sounds natural, casual, and conversational. Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`
                             }
-                        } else {
-                            const replyMessage = `${username}, you need ${cost} gold to upgrade to lvl ${currentLevel + 1}. you have ${userStats[username].gold} gold.`;
-                            
-                            if (ws && ws.readyState === WebSocket.OPEN) {
-                                ws.send(JSON.stringify(["M", replyMessage]));
-                            }
-                        }
+                        ],
+                        model: 'llama-3.1-8b-instant'
+                    });
+
+                    const responseText = response.choices[0].message.content.trim();
+
+                    if (responseText && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(["M", responseText]));
                     }
                 }
             }
