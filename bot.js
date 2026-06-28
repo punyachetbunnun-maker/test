@@ -32,13 +32,18 @@ function connectToGame() {
                 }
                 
                 if (rawChatString.trim().length > 0) {
+                    let sender = "";
                     let actualMessage = rawChatString;
+                    
                     const colonIndex = rawChatString.indexOf(": ");
                     if (colonIndex !== -1) {
+                        sender = rawChatString.substring(0, colonIndex).trim().toLowerCase();
                         actualMessage = rawChatString.substring(colonIndex + 2);
                     }
 
-                    if (actualMessage.trim().toLowerCase() === "hi") {
+                    const cleanMessage = actualMessage.trim().toLowerCase();
+
+                    if (cleanMessage === "hi" || cleanMessage.split(" ").includes("hi")) {
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify(["M", "hi"]));
                         }
