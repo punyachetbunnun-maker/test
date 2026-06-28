@@ -6,14 +6,14 @@ const AUTH_PACKET = ["C", "7enx8an7xm"];
 const PHRASES = [
     "hi",
     "hello",
-    "Eh?",
-    "Cinnamon Bun",
-    "67",
-    "spin",
-    "test",
-    "online",
-    "active",
-    "running"
+    "hey",
+    "yo",
+    "sup",
+    "howdy",
+    "welcome",
+    "greetings",
+    "hi there",
+    "hello there"
 ];
 
 let ws = null;
@@ -44,37 +44,6 @@ function connectToGame() {
     ws.on('message', (data) => {
         try {
             const packet = JSON.parse(data.toString());
-        } catch (err) {}
-    });
-
-    ws.on('close', () => {
-        console.log("Disconnected from server. Reconnecting in 5 seconds...");
-        if (chatInterval) {
-            clearInterval(chatInterval);
-            chatInterval = null;
-        }
-        setTimeout(connectToGame, 5000);
-    });
-
-    ws.on('error', (err) => {
-        console.error("Socket error:", err.message);
-    });
-}
-
-connectToGame();
-if (typeof packet[i] === "string") {
-                        const checkStr = packet[i].toLowerCase();
-                        if (checkStr === "hi" || checkStr === "hello") {
-                            messageText = checkStr;
-                            break;
-                        }
-                    }
-                }
-                
-                if (messageText === "hi" || messageText === "hello") {
-                    ws.send(JSON.stringify(["M", "hi"]));
-                }
-            }
         } catch (err) {}
     });
 
