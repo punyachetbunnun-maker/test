@@ -53,7 +53,7 @@ function connectToGame() {
                         
                         userStats[username].gold = Math.round((userStats[username].gold + finalGain) * 10) / 10;
 
-                        const replyMessage = `${username} gained +${finalGain} gold! Total: ${userStats[username].gold} gold (Multiplier: ${userStats[username].multiplier}x).`;
+                        const replyMessage = `${username} gained +${finalGain} gold. now, ${userStats[username].gold} gold. multiplyer, ${userStats[username].multiplier}x).`;
 
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify(["M", replyMessage]));
