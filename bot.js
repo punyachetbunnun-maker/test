@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
-const AUTH_PACKET = ["C", "7enx8an7xm"]; 
+const AUTH_PACKET = ["C", "GU111B13_EZ"]; 
 
 let ws = null;
 let lastBotReply = "";
