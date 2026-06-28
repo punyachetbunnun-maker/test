@@ -32,15 +32,18 @@ function connectToGame() {
                 }
                 
                 if (rawChatString.trim().length > 0) {
+                    let username = "UnknownPlayer";
+                    let actualMessage = rawChatString.trim();
+
                     const colonIndex = rawChatString.indexOf(": ");
-                    if (colonIndex === -1) {
-                        return; 
+                    if (colonIndex !== -1) {
+                        username = rawChatString.substring(0, colonIndex).trim();
+                        actualMessage = rawChatString.substring(colonIndex + 2).trim();
                     }
 
-                    const username = rawChatString.substring(0, colonIndex).trim();
-                    const actualMessage = rawChatString.substring(colonIndex + 2).trim();
+                    const cleanMessage = actualMessage.replace(/\*/g, '').toLowerCase();
 
-                    if (actualMessage.toLowerCase() === "increase") {
+                    if (cleanMessage === "increase") {
                         if (!userGold[username]) {
                             userGold[username] = 1;
                         }
@@ -48,7 +51,7 @@ function connectToGame() {
                         const gain = Math.random() < 0.5 ? 1 : 2;
                         userGold[username] += gain;
 
-                        const replyMessage = `${username} gained +${gain} gold now ${userGold[username]} gold.`;
+                        const replyMessage = `${username} gained +${gain} gold! Total: ${userGold[username]} gold.`;
 
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify(["M", replyMessage]));
