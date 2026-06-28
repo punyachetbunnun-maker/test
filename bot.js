@@ -8,7 +8,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 let ws = null;
 let lastReplyTime = 0;
-const COOLDOWN_MS = 10000; 
+const COOLDOWN_MS = 15000; 
 
 function connectToGame() {
     console.log("Connecting to game server...");
