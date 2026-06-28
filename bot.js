@@ -3,7 +3,7 @@ import WebSocket from 'ws';
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
-const userGold = {};
+const userStats = {};
 
 let ws = null;
 
@@ -39,18 +39,48 @@ function connectToGame() {
                 if (username.length > 0 && actualMessage.length > 0) {
                     const cleanMessage = actualMessage.replace(/\*/g, '').toLowerCase();
 
+                    if (!userStats[username]) {
+                        userStats[username] = {
+                            gold: 1,
+                            level: 0,
+                            multiplier: 1.0
+                        };
+                    }
+
                     if (cleanMessage === "increase") {
-                        if (!userGold[username]) {
-                            userGold[username] = 1;
-                        }
+                        const baseGain = Math.random() < 0.5 ? 1 : 2;
+                        const finalGain = Math.round(baseGain * userStats[username].multiplier * 10) / 10;
+                        
+                        userStats[username].gold = Math.round((userStats[username].gold + finalGain) * 10) / 10;
 
-                        const gain = Math.random() < 0.5 ? 1 : 2;
-                        userGold[username] += gain;
-
-                        const replyMessage = `${username} gained ${gain} gold now, ${userGold[username]} gold.`;
+                        const replyMessage = `${username} gained +${finalGain} gold! Total: ${userStats[username].gold} gold (Multiplier: ${userStats[username].multiplier}x).`;
 
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify(["M", replyMessage]));
+                        }
+                    }
+
+                    else if (cleanMessage === "buy") {
+                        const currentLevel = userStats[username].level;
+                        const cost = 10 * (currentLevel + 1);
+
+                        if (userStats[username].gold >= cost) {
+                            userStats[username].gold = Math.round((userStats[username].gold - cost) * 10) / 10;
+                            userStats[username].level += 1;
+                            userStats[username].multiplier = Math.round((userStats[username].multiplier + 0.1) * 10) / 10;
+
+                            const nextCost = 10 * (userStats[username].level + 1);
+                            const replyMessage = `${username} upgraded to Level ${userStats[username].level}! Multiplier is now ${userStats[username].multiplier}x. Next level costs ${nextCost} gold.`;
+
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify(["M", replyMessage]));
+                            }
+                        } else {
+                            const replyMessage = `${username}, you need ${cost} gold to upgrade to Level ${currentLevel + 1}. You only have ${userStats[username].gold} gold.`;
+                            
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                ws.send(JSON.stringify(["M", replyMessage]));
+                            }
                         }
                     }
                 }
