@@ -81,7 +81,15 @@ function connectToGame() {
 
                     lastReplyTime = now; 
 
-                    const systemInstruction = `You are a player inside a game chat room. You must only output the final message reply text itself. Never include introductory sentences, explanations, or meta-commentary. Keep your responses short, concise, and direct (maximum 1 sentence long). If it is a math problem, output only the absolute final answer. Keep your output strictly plain text without markdown, bold syntax, or quotes. Use the following community lore document as your factual background memory to answer questions or talk accurately about custom terms: \n\n${communityLore}`;
+                    const systemInstruction = `You are a player inside a game chat room. You must only output the final message reply text itself. Never include introductory sentences or meta-commentary. Keep your output strictly plain text without markdown, bold syntax, or quotes.
+
+Rules for responding:
+1. If the message is a math problem, algebraic equation, or numeric question, solve it completely and explain the details step-by-step in a short, clear breakdown so the chat can see how it was solved.
+2. If the message mentions or asks about terms from the community lore below (such as ttf, terroristic triangle forces, dragon king gaming, etc.), provide a well-explained, detailed response (2-3 sentences long) using the lore data.
+3. If it is regular chat unrelated to math or lore, keep your response short, concise, and direct (maximum 1 sentence long).
+
+Community lore reference document:
+${communityLore}`;
 
                     const response = await groq.chat.completions.create({
                         messages: [
