@@ -70,7 +70,7 @@ function connectToGame() {
                             userStats[username].multiplier = Math.round((userStats[username].multiplier + 0.1) * 10) / 10;
 
                             const nextCost = 10 * (userStats[username].level + 1);
-                            const replyMessage = `${username} upgraded to lvl ${userStats[username].level}. multiplier, ${userStats[username].multiplier}x. next level costs, ${nextCost} gold.`;
+                            const replyMessage = `${username} upgraded to lvl ${userStats[username].level}. multiplier, ${userStats[username].multiplier}x. next level costs ${nextCost} gold.`;
 
                             if (ws && ws.readyState === WebSocket.OPEN) {
                                 ws.send(JSON.stringify(["M", replyMessage]));
