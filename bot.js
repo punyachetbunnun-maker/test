@@ -58,24 +58,37 @@ function connectToGame() {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                let foundHi = false;
-                let actualMessage = "";
+                let rawChatString = "";
 
                 for (let i = 1; i < packet.length; i++) {
-                    if (typeof packet[i] === "string") {
-                        const cleanStr = packet[i].trim().toLowerCase();
-                        if (cleanStr === "hi" || cleanStr.split(" ").includes("hi")) {
-                            foundHi = true;
-                            actualMessage = packet[i];
+                    if (typeof packet[i] === "string" && packet[i].includes(":")) {
+                        rawChatString = packet[i];
+                        break;
+                    }
+                }
+
+                if (!rawChatString) {
+                    for (let i = 1; i < packet.length; i++) {
+                        if (typeof packet[i] === "string" && packet[i].trim().length > 2) {
+                            rawChatString = packet[i];
                             break;
                         }
                     }
                 }
 
-                if (foundHi) {
-                    const aiReply = await generateAIResponse(actualMessage);
-                    if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
-                        ws.send(JSON.stringify(["M", aiReply]));
+                if (rawChatString && rawChatString.trim().length > 0) {
+                    let actualMessage = rawChatString;
+                    const colonIndex = rawChatString.indexOf(":");
+                    
+                    if (colonIndex !== -1) {
+                        actualMessage = rawChatString.substring(colonIndex + 1).trim();
+                    }
+
+                    if (actualMessage.length > 0) {
+                        const aiReply = await generateAIResponse(actualMessage);
+                        if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
+                            ws.send(JSON.stringify(["M", aiReply]));
+                        }
                     }
                 }
             }
