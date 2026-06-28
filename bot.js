@@ -8,6 +8,26 @@ const hf = new HfInference(process.env.HF_API_TOKEN);
 
 let ws = null;
 
+async function generateWithRetry(inputs, retries = 3) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            const response = await hf.textGeneration({
+                model: 'Mistralai/Mistral-7B-Instruct-v0.2',
+                inputs: inputs,
+                parameters: {
+                    max_new_tokens: 50,
+                    temperature: 0.7
+                }
+            });
+            return response;
+        } catch (err) {
+            if (i === retries - 1) throw err;
+            console.log(`AI fetch failed. Retrying... (${i + 1}/${retries})`);
+            await new Promise(res => setTimeout(res, 1000));
+        }
+    }
+}
+
 function connectToGame() {
     console.log("Connecting to game server...");
     ws = new WebSocket(SERVER_URL, {
@@ -42,14 +62,8 @@ function connectToGame() {
 
                 if (foundHi) {
                     try {
-                        const response = await hf.textGeneration({
-                            model: 'Mistralai/Mistral-7B-Instruct-v0.2',
-                            inputs: `<s>[INST] You are a casual player in a video game chat room. Reply to this comment: "${actualMessage}". Keep your answer short, casual, and exactly 1 sentence long. Do not use quotes or markdown. [/INST]`,
-                            parameters: {
-                                max_new_tokens: 50,
-                                temperature: 0.7
-                            }
-                        });
+                        const prompt = `<s>[INST] You are a casual player in a video game chat room. Reply to this comment: "${actualMessage}". Keep your answer short, casual, and exactly 1 sentence long. Do not use quotes or markdown. [/INST]`;
+                        const response = await generateWithRetry(prompt);
 
                         let aiReply = response.generated_text;
                         const instIndex = aiReply.lastIndexOf('[/INST]');
