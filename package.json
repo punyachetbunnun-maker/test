@@ -4,7 +4,6 @@
   "main": "bot.js",
   "type": "module",
   "dependencies": {
-    "@huggingface/inference": "^2.8.1",
     "ws": "^8.16.0"
   }
 }
