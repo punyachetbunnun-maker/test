@@ -15,7 +15,7 @@ const API_KEYS = ALL_KEYS.filter(key => key && key.trim().length > 0);
 let currentKeyIndex = 0;
 let ws = null;
 let lastReplyTime = 0;
-const COOLDOWN_MS = 15000; 
+const COOLDOWN_MS = 12000; 
 
 function getAIInstance() {
     if (API_KEYS.length === 0) {
@@ -79,7 +79,7 @@ function connectToGame() {
 
                         const response = await ai.models.generateContent({
                             model: 'gemini-2.5-flash',
-                            contents: `You are a casual player in a game chat room. Reply to this message: "${actualMessage}". Keep it very short, snappy, and conversational (under 10 words). Do not include quotes, markdown, or bot-like phrasing.`,
+                            contents: `You are a casual player in a game chat room. Reply to this message: "${actualMessage}". Give a longer, detailed response (2-3 sentences long) that sounds natural and conversational. Do not include any quotes, markdown formatting, or bot-like phrasing.`,
                         });
                         
                         const aiReply = response.text.trim();
