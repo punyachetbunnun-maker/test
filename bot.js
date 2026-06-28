@@ -1,30 +1,42 @@
 import WebSocket from 'ws';
-import { HfInference } from '@huggingface/inference';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
-const hf = new HfInference(process.env.HF_API_TOKEN);
-
 let ws = null;
 
-async function generateWithRetry(inputs, retries = 3) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            const response = await hf.textGeneration({
-                model: 'Qwen/Qwen2.5-7B-Instruct',
-                inputs: inputs,
-                parameters: {
-                    max_new_tokens: 50,
-                    temperature: 0.7
-                }
-            });
-            return response;
-        } catch (err) {
-            if (i === retries - 1) throw err;
-            console.log(`AI fetch failed. Retrying... (${i + 1}/${retries})`);
-            await new Promise(res => setTimeout(res, 1500));
+async function generateAIResponse(userMessage) {
+    try {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                model: "meta-llama/llama-3-8b-instruct:free",
+                messages: [
+                    {
+                        role: "system",
+                        content: "You are a casual player in a video game chat room. Reply to the user message in exactly 1 short sentence. Do not use quotes, hashtags, or markdown formatting."
+                    },
+                    {
+                        role: "user",
+                        content: userMessage
+                    }
+                ]
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content?.trim() || "";
+    } catch (err) {
+        console.error("AI Generation Error:", err.message);
+        return "";
     }
 }
 
@@ -61,23 +73,9 @@ function connectToGame() {
                 }
 
                 if (foundHi) {
-                    try {
-                        const prompt = `<|im_start|>system\nYou are a casual player in a video game chat room. Reply to the user message in exactly 1 short sentence. Do not use quotes or markdown.<|im_end|>\n<|im_start|>user\n${actualMessage}<|im_end|>\n<|im_start|>assistant\n`;
-                        const response = await generateWithRetry(prompt);
-
-                        let aiReply = response.generated_text;
-                        const assistantIndex = aiReply.lastIndexOf('<|im_start|>assistant\n');
-                        if (assistantIndex !== -1) {
-                            aiReply = aiReply.substring(assistantIndex + 22).trim();
-                        }
-                        
-                        aiReply = aiReply.replace(/<\|im_end\|>/g, '').trim();
-
-                        if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
-                            ws.send(JSON.stringify(["M", aiReply]));
-                        }
-                    } catch (aiError) {
-                        console.error("AI Generation Error:", aiError.message);
+                    const aiReply = await generateAIResponse(actualMessage);
+                    if (ws && ws.readyState === WebSocket.OPEN && aiReply.length > 0) {
+                        ws.send(JSON.stringify(["M", aiReply]));
                     }
                 }
             }
