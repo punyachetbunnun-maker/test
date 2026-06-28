@@ -1,9 +1,32 @@
 import WebSocket from 'ws';
+import fs from 'fs';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
+const DATA_FILE = './gold_data.json';
 
-const userStats = {};
+let userStats = {};
+
+if (fs.existsSync(DATA_FILE)) {
+    try {
+        const rawData = fs.readFileSync(DATA_FILE, 'utf8');
+        userStats = JSON.parse(rawData);
+        console.log("Successfully loaded saved gold balances from file!");
+    } catch (err) {
+        console.error("Error reading save file, starting fresh:", err.message);
+        userStats = {};
+    }
+} else {
+    console.log("No save file found. Initializing fresh database.");
+}
+
+function saveDatabase() {
+    try {
+        fs.writeFileSync(DATA_FILE, JSON.stringify(userStats, null, 2), 'utf8');
+    } catch (err) {
+        console.error("Error saving data to file:", err.message);
+    }
+}
 
 let ws = null;
 
@@ -45,6 +68,7 @@ function connectToGame() {
                             level: 0,
                             multiplier: 1.0
                         };
+                        saveDatabase();
                     }
 
                     if (cleanMessage === "increase") {
@@ -52,6 +76,8 @@ function connectToGame() {
                         const finalGain = Math.round(baseGain * userStats[username].multiplier * 10) / 10;
                         
                         userStats[username].gold = Math.round((userStats[username].gold + finalGain) * 10) / 10;
+                        
+                        saveDatabase();
 
                         const replyMessage = `${username} gained +${finalGain} gold. now, ${userStats[username].gold} gold. multiplyer, ${userStats[username].multiplier}x).`;
 
@@ -68,6 +94,8 @@ function connectToGame() {
                             userStats[username].gold = Math.round((userStats[username].gold - cost) * 10) / 10;
                             userStats[username].level += 1;
                             userStats[username].multiplier = Math.round((userStats[username].multiplier + 0.1) * 10) / 10;
+                            
+                            saveDatabase();
 
                             const nextCost = 10 * (userStats[username].level + 1);
                             const replyMessage = `${username} upgraded to lvl ${userStats[username].level}. multiplier, ${userStats[username].multiplier}x. next level costs ${nextCost} gold.`;
