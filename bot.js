@@ -38,7 +38,7 @@ function connectToGame() {
                 const randomMessage = PHRASES[randomIndex];
                 ws.send(JSON.stringify(["M", randomMessage]));
             }
-        }, 15000);
+        }, 10000);
     });
 
     ws.on('message', (data) => {
@@ -64,34 +64,6 @@ function connectToGame() {
                     ws.send(JSON.stringify(["M", randomMessage]));
                 }
             }
-        } catch (err) {}
-    });
-
-    ws.on('close', () => {
-        console.log("Disconnected from server. Reconnecting in 5 seconds...");
-        if (chatInterval) {
-            clearInterval(chatInterval);
-            chatInterval = null;
-        }
-        setTimeout(connectToGame, 5000);
-    });
-
-    ws.on('error', (err) => {
-        console.error("Socket error:", err.message);
-    });
-}
-
-connectToGame();
-                const randomIndex = Math.floor(Math.random() * PHRASES.length);
-                const randomMessage = PHRASES[randomIndex];
-                ws.send(JSON.stringify(["M", randomMessage]));
-            }
-        }, 15000);
-    });
-
-    ws.on('message', (data) => {
-        try {
-            const packet = JSON.parse(data.toString());
         } catch (err) {}
     });
 
