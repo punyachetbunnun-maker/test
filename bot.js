@@ -51,7 +51,7 @@ function connectToGame() {
                         const gain = Math.random() < 0.5 ? 1 : 2;
                         userGold[username] += gain;
 
-                        const replyMessage = `${username} gained +${gain} gold! Total: ${userGold[username]} gold.`;
+                        const replyMessage = `${username} gained ${gain} gold now, ${userGold[username]} gold.`;
 
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify(["M", replyMessage]));
