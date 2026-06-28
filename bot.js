@@ -1,6 +1,5 @@
 import WebSocket from 'ws';
 import Groq from 'groq-sdk';
-import { convert } from 'html-to-text';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
@@ -18,17 +17,22 @@ async function fetchCommunityLore() {
         console.log("Loading community lore from public mobile view...");
         const response = await fetch(LORE_DOC_URL);
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const html = await response.text();
+        const rawHtml = await response.text();
         
-        communityLore = convert(html, {
-            wordwrap: false,
-            selectors: [
-                { selector: 'a', options: { ignoreHref: true } },
-                { selector: 'img', format: 'skip' }
-            ]
-        });
+        let cleanedText = rawHtml
+            .replace(/<style[^>]*>[\s\S]*?<\/style[^>]*>/gi, '')
+            .replace(/<script[^>]*>[\s\S]*?<\/script[^>]*>/gi, '')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
 
-        console.log("Successfully loaded and cleaned lore database!");
+        if (cleanedText.length > 3000) {
+            cleanedText = cleanedText.substring(0, 3000);
+        }
+
+        communityLore = cleanedText;
+        console.log("Successfully loaded and parsed lore database!");
     } catch (err) {
         console.error("Failed to load lore document:", err.message);
         communityLore = "";
