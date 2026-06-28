@@ -55,8 +55,12 @@ function connectToGame() {
                     const response = await groq.chat.completions.create({
                         messages: [
                             {
+                                role: 'system',
+                                content: 'You are a player inside a game chat room. You must only output the final message reply text itself. Never include any introductory sentences, meta-commentary, explanations of your reasoning, or phrases like "Here is a possible response:". If the message is a math problem, output only the final mathematical step and answer. If it is regular chat, output only 2-3 detailed sentences of natural, casual, and conversational reply. Keep your output strictly plain text without markdown, bold markers, or quotes.'
+                            },
+                            {
                                 role: 'user',
-                                content: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply with a longer, detailed response (2-3 sentences long) that sounds natural, casual, and conversational. Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`
+                                content: actualMessage
                             }
                         ],
                         model: 'llama-3.1-8b-instant'
