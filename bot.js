@@ -38,7 +38,7 @@ function connectToGame() {
                 const randomMessage = PHRASES[randomIndex];
                 ws.send(JSON.stringify(["M", randomMessage]));
             }
-        }, 10000);
+        }, 20000);
     });
 
     ws.on('message', (data) => {
