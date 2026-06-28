@@ -82,8 +82,6 @@ function connectToGame() {
                         return; 
                     }
 
-                    lastReplyTime = now; 
-
                     const systemInstruction = `You are a player inside a game chat room. You must only output the final message reply text itself. Never include introductory sentences or meta-commentary. Keep your output strictly plain text without markdown, bold syntax, or quotes.
 
 Rules for responding:
@@ -111,6 +109,7 @@ ${communityLore}`;
                     const responseText = response.choices[0].message.content.trim();
 
                     if (responseText && ws && ws.readyState === WebSocket.OPEN) {
+                        lastReplyTime = Date.now(); 
                         ws.send(JSON.stringify(["M", responseText]));
                     }
                 }
