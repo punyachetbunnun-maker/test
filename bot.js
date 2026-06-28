@@ -1,37 +1,11 @@
 import WebSocket from 'ws';
-import { GoogleGenAI } from '@google/genai';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
-const ALL_KEYS = [
-    { name: "GEMINI_API_KEY_1", value: process.env.GEMINI_API_KEY_1 },
-    { name: "GEMINI_API_KEY_2", value: process.env.GEMINI_API_KEY_2 },
-    { name: "GEMINI_API_KEY_3", value: process.env.GEMINI_API_KEY_3 },
-    { name: "GEMINI_API_KEY_4", value: process.env.GEMINI_API_KEY_4 },
-    { name: "GEMINI_API_KEY_5", value: process.env.GEMINI_API_KEY_5 },
-    { name: "GEMINI_API_KEY_6", value: process.env.GEMINI_API_KEY_6 }
-];
+const userGold = {};
 
-const API_KEYS = ALL_KEYS.filter(item => item.value && item.value.trim().length > 0);
-
-let currentKeyIndex = 0;
 let ws = null;
-let lastReplyTime = 0;
-const COOLDOWN_MS = 10000; 
-
-function getAIInstance() {
-    if (API_KEYS.length === 0) {
-        console.error("Error: No valid API keys found in environment variables!");
-        return null;
-    }
-    const keyData = API_KEYS[currentKeyIndex];
-    return new GoogleGenAI({ apiKey: keyData.value });
-}
-
-function rotateKey() {
-    currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-}
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -46,7 +20,7 @@ function connectToGame() {
         ws.send(JSON.stringify(AUTH_PACKET));
     });
 
-    ws.on('message', async (data) => {
+    ws.on('message', (data) => {
         try {
             const packet = JSON.parse(data.toString());
             
@@ -58,61 +32,27 @@ function connectToGame() {
                 }
                 
                 if (rawChatString.trim().length > 0) {
-                    let actualMessage = rawChatString;
                     const colonIndex = rawChatString.indexOf(": ");
-                    if (colonIndex !== -1) {
-                        actualMessage = rawChatString.substring(colonIndex + 2);
-                    }
-
-                    if (actualMessage.trim().length === 0) {
-                        return;
-                    }
-
-                    const now = Date.now();
-                    if (now - lastReplyTime < COOLDOWN_MS) {
+                    if (colonIndex === -1) {
                         return; 
                     }
 
-                    lastReplyTime = now; 
+                    const username = rawChatString.substring(0, colonIndex).trim();
+                    const actualMessage = rawChatString.substring(colonIndex + 2).trim();
 
-                    let responseText = null;
-                    let attempts = 0;
-
-                    while (attempts < API_KEYS.length) {
-                        const currentKeyName = API_KEYS[currentKeyIndex].name;
-                        try {
-                            const ai = getAIInstance();
-                            if (!ai) break;
-
-                            const response = await ai.models.generateContent({
-                                model: 'gemini-2.5-flash',
-                                contents: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply with a longer, detailed response (2-3 sentences long) that sounds natural, casual, and conversational. Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`,
-                            });
-
-                            responseText = response.text.trim();
-                            rotateKey(); 
-                            break; 
-
-                        } catch (aiError) {
-                            console.error(`[${currentKeyName}] failed:`, aiError.message);
-                            
-                            const isRateLimited = aiError.message.includes("429") || aiError.message.includes("RESOURCE_EXHAUSTED");
-                            const isUnavailable = aiError.message.includes("503") || aiError.message.includes("UNAVAILABLE");
-
-                            if (isRateLimited || isUnavailable) {
-                                rotateKey();
-                                const nextKeyName = API_KEYS[currentKeyIndex].name;
-                                console.log(`[${currentKeyName}] is full/unavailable. Automatically switching to [${nextKeyName}]...`);
-                                attempts++;
-                            } else {
-                                rotateKey(); 
-                                break;
-                            }
+                    if (actualMessage.toLowerCase() === "increase") {
+                        if (!userGold[username]) {
+                            userGold[username] = 1;
                         }
-                    }
 
-                    if (responseText && ws && ws.readyState === WebSocket.OPEN) {
-                        ws.send(JSON.stringify(["M", responseText]));
+                        const gain = Math.random() < 0.5 ? 1 : 2;
+                        userGold[username] += gain;
+
+                        const replyMessage = `${username} gained +${gain} gold now ${userGold[username]} gold.`;
+
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify(["M", replyMessage]));
+                        }
                     }
                 }
             }
