@@ -86,7 +86,7 @@ function connectToGame() {
 
                             const response = await ai.models.generateContent({
                                 model: 'gemini-2.5-flash',
-                                contents: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply in a very short, snappy, conversational way (under 10 words). Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`,
+                                contents: `You are a player in a game chat room. Analyze this incoming message: "${actualMessage}". If the message is a math problem, algebraic equation, or numeric question, solve it completely and accurately. If it is regular chat, reply with a longer, detailed response (2-3 sentences long) that sounds natural, casual, and conversational. Keep your output entirely as plain text. Do not use markdown, bold syntax, bullet points, or quotes.`,
                             });
 
                             responseText = response.text.trim();
