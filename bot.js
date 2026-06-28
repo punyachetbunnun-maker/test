@@ -7,7 +7,8 @@ const AUTH_PACKET = ["C", "7enx8an7xm"];
 const ALL_KEYS = [
     process.env.GEMINI_API_KEY_1,
     process.env.GEMINI_API_KEY_2,
-    process.env.GEMINI_API_KEY_3
+    process.env.GEMINI_API_KEY_3,
+    process.env.GEMINI_API_KEY_4
 ];
 
 const API_KEYS = ALL_KEYS.filter(key => key && key.trim().length > 0);
