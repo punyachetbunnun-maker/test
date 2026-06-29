@@ -4,6 +4,7 @@ import Groq from 'groq-sdk';
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 const LORE_DOC_URL = "https://docs.google.com/document/d/1fJgD3m8acXw8c_oAHkzGoD6cie1bet2016ehQijOkmo/mobilebasic";
+const INFO_DOC_URL = "https://docs.google.com/document/d/13A7UwmBYqgQ1ssiJDgAaa0C2GdRTuMfuFixYaA8n4fw/mobilebasic";
 const SERVER_DATA_URL = "https://trappercloser.github.io/Arras-Server-Thingy/";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -12,6 +13,7 @@ let ws = null;
 let lastReplyTime = 0;
 const COOLDOWN_MS = 10000; 
 let communityLore = "";
+let additionalDocData = "";
 let serverThingyData = "";
 
 async function fetchExternalData() {
@@ -32,6 +34,26 @@ async function fetchExternalData() {
         }
     } catch (err) {
         console.error("Failed loading lore document:", err.message);
+    }
+
+    try {
+        console.log("Loading additional document data...");
+        const infoRes = await fetch(INFO_DOC_URL);
+        if (infoRes.ok) {
+            let html = await infoRes.text();
+            additionalDocData = html
+                .replace(/<style[^>]*>[\s\S]*?<\/style[^>]*>/gi, '')
+                .replace(/<script[^>]*>[\s\S]*?<\/script[^>]*>/gi, '')
+                .replace(/<(div|p|span|br|html|body|head|title|meta|link|a)[^>]*>/gi, ' ')
+                .replace(/<\/(div|p|span|html|body|head|title|a)>/gi, ' ')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim();
+            if (additionalDocData.length > 3000) additionalDocData = additionalDocData.substring(0, 3000);
+            console.log("Successfully loaded additional reference document!");
+        }
+    } catch (err) {
+        console.error("Failed loading additional reference document:", err.message);
     }
 
     try {
@@ -126,6 +148,9 @@ function connectToGame() {
                     if (needsLore && communityLore) {
                         activeContext += `\n\nCommunity lore reference document:\n${communityLore}`;
                     }
+                    if (additionalDocData) {
+                        activeContext += `\n\nAdditional reference facts document:\n${additionalDocData}`;
+                    }
                     if (needsServerData && serverThingyData) {
                         activeContext += `\n\nLive Server Table data (Server, Players, Uptime, MSPT):\n${serverThingyData}`;
                     }
@@ -184,4 +209,4 @@ async function startBot() {
 }
 
 startBot();
-                         
+    
