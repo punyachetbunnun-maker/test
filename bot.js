@@ -73,13 +73,18 @@ function connectToGame() {
                         actualMessage = rawChatString.substring(colonIndex + 2);
                     }
 
-                    if (actualMessage.trim().length === 0) {
+                    const cleanMsg = actualMessage.trim();
+                    if (cleanMsg.length === 0) {
                         return;
                     }
 
-                    // Only reply if the message matches your test phrase exactly
-                    if (actualMessage.trim() !== "im so not trust") {
-                        return;
+                    if (cleanMsg === "!stop") {
+                        console.log("Stop command received! Shutting down bot...");
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify(["M", "Shutting down, see ya!"]));
+                            ws.close();
+                        }
+                        process.exit(0); 
                     }
 
                     const now = Date.now();
@@ -89,7 +94,7 @@ function connectToGame() {
 
                     lastReplyTime = now; 
 
-                    const lowerMsg = actualMessage.toLowerCase();
+                    const lowerMsg = cleanMsg.toLowerCase();
                     const needsLore = lowerMsg.includes("ttf") || 
                                       lowerMsg.includes("dkg") || 
                                       lowerMsg.includes("lore") || 
@@ -121,7 +126,7 @@ Additional facts and context guidelines:
                             },
                             {
                                 role: 'user',
-                                content: actualMessage
+                                content: cleanMsg
                             }
                         ],
                         model: 'llama-3.1-8b-instant'
@@ -153,4 +158,4 @@ async function startBot() {
 }
 
 startBot();
-          
+        
