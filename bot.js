@@ -112,6 +112,14 @@ function connectToGame() {
                     lastReplyTime = now; 
 
                     const lowerMsg = cleanMsg.toLowerCase();
+                    
+                    // Math detection rules for expressions, variables, and operators
+                    const isMath = lowerMsg.includes("^") || 
+                                   lowerMsg.includes("solve") || 
+                                   lowerMsg.includes("equation") ||
+                                   (lowerMsg.includes("x") && (lowerMsg.includes("=") || lowerMsg.includes("+") || lowerMsg.includes("-"))) ||
+                                   /[\d+\-*/=]/.test(lowerMsg);
+
                     const needsLore = lowerMsg.includes("ttf") || 
                                       lowerMsg.includes("dkg") || 
                                       lowerMsg.includes("lore") || 
@@ -134,7 +142,7 @@ function connectToGame() {
                     const systemInstruction = `You are a regular, friendly user hanging out and chatting inside an online chat room. Talk naturally like a normal human. Avoid sounding like an AI helper or a chatbot assistant. Do not use corporate phrases or say things like "I'm here to help." You must only output the final chat message reply text itself. Never include introductory descriptions or meta-commentary. Keep your output strictly plain text without markdown, bold syntax, symbols like asterisks, or quotes.
 
 Rules for responding:
-1. If the message is a math problem, algebraic equation, quadratic formula question, or numeric question, solve it completely and explain the steps in a casual, conversational, and helpful tone so it's super easy to follow. 
+1. If the user message is a math problem, algebraic equation, quadratic formula question, caret exponent (^), or numeric equation, you MUST prioritize solving it. Work through the calculation completely and explain the steps clearly in a casual, conversational, and helpful tone so it is super easy for anyone in chat to understand. Do not ignore it or give a short conversational response instead.
 2. If the message asks about community lore (such as ttf, dkg, dragon king gaming), share the details naturally from the provided document as a normal user who knows the history (2-3 sentences max). Stick strictly to the facts written in the text. Do not invent any fake server events, guild raids, or countdowns.
 3. If the message asks about active servers, player counts, uptime, or mspt stats, use the provided Live Server Table dataset to answer accurately in 1-2 friendly sentences as a normal user checking the dashboard status.
 4. If it is regular chat unrelated to math, servers, or lore, reply with a short, friendly, and informal comment (maximum 1 sentence long). Sound energetic, happy, and chill. Do not bring up data context unless specifically asked.
@@ -185,4 +193,3 @@ async function startBot() {
 }
 
 startBot();
-          
