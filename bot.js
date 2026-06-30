@@ -8,7 +8,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 let ws = null;
 let lastReplyTime = 0;
-const COOLDOWN_MS = 10000; 
+const COOLDOWN_MS = 100; 
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -68,7 +68,12 @@ function connectToGame() {
 
                     lastReplyTime = now; 
 
-                    // Extract the profile picture directly from packet[12]
+                    // Extract the username from packet[3] and profile picture from packet[12]
+                    let senderUsername = "Unknown User";
+                    if (packet[3] !== undefined && packet[3] !== null) {
+                        senderUsername = String(packet[3]);
+                    }
+
                     let senderProfilePicture = "None/Default Avatar";
                     if (packet[12] !== undefined && packet[12] !== null) {
                         senderProfilePicture = String(packet[12]);
@@ -79,7 +84,10 @@ function connectToGame() {
 Math Rule: If the message contains a math problem, algebraic equation, arithmetic calculation, or number sequence problem, solve it completely right now. Break down the mathematical steps clearly in a casual, easy-to-read, and helpful tone so it is super simple for anyone in the chat room to follow your reasoning.
 
 User Profile Context:
-The profile picture image/GIF link of the user talking to you right now is: ${senderProfilePicture}`;
+- Username of the person talking to you: ${senderUsername}
+- Their profile picture image/GIF link: ${senderProfilePicture}
+
+Feel free to mention their username naturally in your response when talking to them!`;
 
                     const response = await groq.chat.completions.create({
                         messages: [
