@@ -8,7 +8,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 let ws = null;
 let lastReplyTime = 0;
-const COOLDOWN_MS = 100; 
+const COOLDOWN_MS = 5000; 
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -42,17 +42,11 @@ function connectToGame() {
                     }
 
                     const cleanMsg = actualMessage.trim();
-                    
-                    if (!cleanMsg.startsWith("::")) {
+                    if (cleanMsg.length === 0) {
                         return;
                     }
 
-                    const promptText = cleanMsg.substring(2).trim();
-                    if (promptText.length === 0) {
-                        return;
-                    }
-
-                    if (promptText === "!stop") {
+                    if (cleanMsg === "!stop") {
                         console.log("Stop command received! Shutting down bot...");
                         if (ws && ws.readyState === WebSocket.OPEN) {
                             ws.send(JSON.stringify(["M", "Shutting down, see ya!"]));
@@ -68,7 +62,6 @@ function connectToGame() {
 
                     lastReplyTime = now; 
 
-                    // Extract the username from packet[3] and profile picture from packet[12]
                     let senderUsername = "Unknown User";
                     if (packet[3] !== undefined && packet[3] !== null) {
                         senderUsername = String(packet[3]);
@@ -97,7 +90,7 @@ Feel free to mention their username naturally in your response when talking to t
                             },
                             {
                                 role: 'user',
-                                content: promptText
+                                content: cleanMsg
                             }
                         ],
                         model: 'llama-3.1-8b-instant'
