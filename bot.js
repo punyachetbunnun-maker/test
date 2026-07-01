@@ -22,7 +22,7 @@ function connectToGame() {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify(AUTH_PACKET));
             }
-        }, 5000);
+        }, 500);
     });
 
     ws.on('close', () => {
