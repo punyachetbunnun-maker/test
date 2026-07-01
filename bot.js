@@ -36,7 +36,7 @@ function connectToGame() {
 
                     if (cleanMsg === "hi") {
                         if (ws && ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify(["M", "hi"]));
+                            ws.send(JSON.stringify(["M", "test :p"]));
                         }
                     }
                 }
