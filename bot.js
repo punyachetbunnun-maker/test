@@ -1,9 +1,14 @@
 import WebSocket from 'ws';
+import Groq from 'groq-sdk';
 
 const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
 const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
 let ws = null;
+let lastReplyTime = 0;
+const COOLDOWN_MS = 10000; 
 
 function connectToGame() {
     console.log("Connecting to game server...");
@@ -18,12 +23,16 @@ function connectToGame() {
         ws.send(JSON.stringify(AUTH_PACKET));
     });
 
-    ws.on('message', (data) => {
+    ws.on('message', async (data) => {
         try {
             const packet = JSON.parse(data.toString());
             
             if (Array.isArray(packet) && packet[0] === "M") {
-                let rawChatString = typeof packet[6] === "string" ? packet[6] : "";
+                let rawChatString = "";
+                
+                if (typeof packet[6] === "string") {
+                    rawChatString = packet[6];
+                }
                 
                 if (rawChatString.trim().length > 0) {
                     let actualMessage = rawChatString;
@@ -32,12 +41,84 @@ function connectToGame() {
                         actualMessage = rawChatString.substring(colonIndex + 2);
                     }
 
-                    const cleanMsg = actualMessage.trim().toLowerCase();
+                    const cleanMsg = actualMessage.trim();
+                    if (cleanMsg.length === 0) {
+                        return;
+                    }
 
-                    if (cleanMsg === ":)") {
+                    if (cleanMsg === "!stop") {
+                        console.log("Stop command received! Shutting down bot...");
                         if (ws && ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify(["M", "i\n\nmight\n\nbe\n\nspamming\n\nbut\n\nyoull never\n\nknow!"]));
+                            ws.send(JSON.stringify(["M", "Shutting down, see ya!"]));
+                            ws.close();
                         }
+                        process.exit(0); 
+                    }
+
+                    const now = Date.now();
+                    if (now - lastReplyTime < COOLDOWN_MS) {
+                        return; 
+                    }
+
+                    lastReplyTime = now; 
+
+                    let senderUsername = "Unknown User";
+                    if (packet[3] !== undefined && packet[3] !== null) {
+                        senderUsername = String(packet[3]);
+                    }
+
+                    let senderProfilePicture = "None/Default Avatar";
+                    if (packet[12] !== undefined && packet[12] !== null) {
+                        senderProfilePicture = String(packet[12]);
+                    }
+
+                    // --- ANTI-PROMPT LEAK GUARDRAIL ---
+                    const lowerMsg = cleanMsg.toLowerCase();
+                    if (
+                        lowerMsg.includes("forget all") || 
+                        lowerMsg.includes("previous instructions") || 
+                        lowerMsg.includes("system prompt") || 
+                        lowerMsg.includes("ignore") && lowerMsg.includes("instruction") ||
+                        lowerMsg.includes("original prompt")
+                    ) {
+                        console.log(`[🛡️ Guardrail triggered]: Blocked prompt injection from ${senderUsername}`);
+                        
+                        // Instantly reply with a completely normal user deflection instead of hitting the AI
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify(["M", "lol nah, nice try though"]));
+                        }
+                        return; 
+                    }
+                    // ----------------------------------
+
+                    const systemInstruction = `You are a regular, friendly user hanging out and chatting inside an online chat room. Talk naturally like a normal human. Avoid sounding like an AI helper or a chatbot assistant. Do not use corporate phrases or say things like "I'm here to help." You must only output the final chat message reply text itself. Never include introductory descriptions or meta-commentary. You are fully allowed to use standard markdown syntax (like bold text, italics, lists, or headers) in your response if it makes your message look cool or well-formatted. Keep your answers short, energetic, and casual.
+
+Math Rule: If the message contains a math problem, algebraic equation, arithmetic calculation, or number sequence problem, solve it completely right now. Break down the mathematical steps clearly in a casual, easy-to-read, and helpful tone so it is super simple for anyone in the chat room to follow your reasoning.
+
+User Profile Context:
+- Username of the person talking to you: ${senderUsername}
+- Their profile picture image/GIF link: ${senderProfilePicture}
+
+Feel free to mention their username naturally in your response when talking to them!`;
+
+                    const response = await groq.chat.completions.create({
+                        messages: [
+                            {
+                                role: 'system',
+                                content: systemInstruction
+                            },
+                            {
+                                role: 'user',
+                                content: cleanMsg
+                            }
+                        ],
+                        model: 'llama-3.1-8b-instant'
+                    });
+
+                    let responseText = response.choices[0].message.content.trim();
+
+                    if (responseText && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify(["M", responseText]));
                     }
                 }
             }
