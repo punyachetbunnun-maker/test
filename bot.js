@@ -1,55 +1,36 @@
-const SERVER_DATA_API = "https://qrp6ujau11f36bnm-cuvwx.xyz:8443/2222/status";
+import WebSocket from 'ws';
 
-async function testFetchServerStats() {
-    try {
-        console.log(`\n[${new Date().toLocaleTimeString()}] Fetching live metrics dataset...`);
-        const res = await fetch(SERVER_DATA_API);
-        
-        if (res.ok) {
-            const data = await res.json();
-            // Handle if the data is wrapped in a .servers property or direct object
-            const serverList = (data && data.servers) ? data.servers : data;
-            
-            if (serverList && typeof serverList === 'object') {
-                let formattedRows = "Live Status:\nServer | Players | Uptime | MSPT\n";
-                let topServerName = "none";
-                let maxPlayers = -1;
+const SERVER_URL = "wss://partykit.fibonnaci314.partykit.dev/parties/main/my-new-room"; 
+const AUTH_PACKET = ["C", "7enx8an7xm"]; 
 
-                for (const [key, val] of Object.entries(serverList)) {
-                    if (val && typeof val === 'object') {
-                        const currentPlayers = Number(val.players ?? val.playerCount ?? val.currentPlayers ?? 0);
-                        const serverUptime = val.uptime ?? 'unknown';
-                        const serverMspt = val.mspt ?? val.performance ?? '0';
+let ws = null;
+let keepAliveInterval = null;
 
-                        formattedRows += `${key} | ${currentPlayers} players | ${serverUptime} | ${serverMspt} mspt\n`;
-
-                        if (currentPlayers > maxPlayers) {
-                            maxPlayers = currentPlayers;
-                            topServerName = key;
-                        }
-                    }
-                }
-
-                if (maxPlayers >= 0) {
-                    formattedRows += `\nFact: The server currently containing the most players is '${topServerName}' with exactly ${maxPlayers} players online.\n`;
-                }
-
-                console.log(formattedRows);
-            } else {
-                console.log("❌ Live tracking table data parsing error (Not an object).");
-            }
-        } else {
-            console.log(`❌ HTTP Error: Received status code ${res.status}`);
+function connectToGame() {
+    ws = new WebSocket(SERVER_URL, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
         }
-    } catch (err) {
-        console.log("❌ Network Error: Live tracking table data is currently offline or unreachable.");
-        console.error(err.message);
-    }
+    });
+
+    ws.on('open', () => {
+        ws.send(JSON.stringify(AUTH_PACKET));
+
+        if (keepAliveInterval) clearInterval(keepAliveInterval);
+
+        keepAliveInterval = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify(AUTH_PACKET));
+            }
+        }, 5000);
+    });
+
+    ws.on('close', () => {
+        clearInterval(keepAliveInterval);
+        setTimeout(connectToGame, 5000);
+    });
+
+    ws.on('error', () => {});
 }
 
-// Run immediately on start
-testFetchServerStats();
-
-// Repeat every 5000 milliseconds (5 seconds)
-setInterval(testFetchServerStats, 5000);
-                    
+connectToGame();
