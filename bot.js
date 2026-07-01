@@ -34,9 +34,9 @@ function connectToGame() {
 
                     const cleanMsg = actualMessage.trim().toLowerCase();
 
-                    if (cleanMsg === "hi") {
+                    if (cleanMsg === ":)") {
                         if (ws && ws.readyState === WebSocket.OPEN) {
-                            ws.send(JSON.stringify(["M", "test :p"]));
+                            ws.send(JSON.stringify(["M", "i\n\nmight\n\nbe\n\nspamming\n\nbut\n\nyoull never\n\nknow!"]));
                         }
                     }
                 }
